@@ -1,0 +1,23 @@
+name: 功能建议
+description: 提议一个明确的用户体验改进
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你遇到的问题
+      description: 请先描述问题，而不是只描述解决方案。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: 对焦点、遮挡或隐私的影响

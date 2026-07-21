@@ -1,0 +1,23 @@
+name: macOS CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        run: brew install ripgrep
+      - name: Build and test
+        run: zsh ./scripts/test.sh
+      - name: Build release archive
+        run: zsh ./scripts/package-release.sh
