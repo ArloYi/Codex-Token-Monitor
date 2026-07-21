@@ -2,12 +2,6 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-> [!IMPORTANT]
-> This repository is source-available and does not permit unauthorized commercial use. Personal, research, educational, charitable, and other qualifying noncommercial uses are covered by the [PolyForm Noncommercial License 1.0.0](LICENSE). Commercial use requires prior written permission from the copyright holder.
-
-> [!WARNING]
-> The software is provided as is. You assume the risks of installation, permission changes, inaccurate data, service interruption, and account impact. Displayed values are not an official OpenAI bill or quota guarantee. See the [disclaimer](DISCLAIMER.md).
-
 > A dark circular quota gauge for macOS; hover to reveal project details below it.
 
 ![Codex Token Monitor preview](docs/assets/quota-hud-preview.svg)
@@ -155,17 +149,17 @@ The test suite checks Token formatting, project selection, adaptive text sizing,
 - [Privacy](PRIVACY.md)
 - [Security policy](SECURITY.md)
 - [Contributing](CONTRIBUTING.md)
-- [Disclaimer and terms of use](DISCLAIMER.md)
+- [Disclaimer](DISCLAIMER.md)
 - [Changelog](CHANGELOG.md)
-
-## License and liability
-
-This project uses the [PolyForm Noncommercial License 1.0.0](LICENSE). It permits personal study, research, testing, education, charitable work, and other qualifying noncommercial uses. Commercial use, paid distribution, bundling with a paid product or service, or use for an organization's commercial benefit requires prior written permission from the copyright holder.
-
-The software comes without warranties. You assume the risks and consequences of using, modifying, or distributing it. The [license](LICENSE) and [disclaimer](DISCLAIMER.md) contain the complete terms.
 
 ## Author and project status
 
 Created and maintained by [Arlo Yi](https://github.com/ArloYi).
 
 Codex and OpenAI are trademarks or registered trademarks of their respective owners. This is an independent community project. It is not affiliated with, endorsed by, sponsored by, or officially supported by OpenAI.
+
+## License and disclaimer
+
+This project is available under the [MIT License](LICENSE). You may use, modify, and distribute it under the license terms.
+
+The software is provided as is, without warranty. Displayed quota and Token values may differ from official records. You assume the risks of using or relying on the software. See the [disclaimer](DISCLAIMER.md) for details.

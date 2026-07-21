@@ -2,12 +2,6 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-> [!IMPORTANT]
-> 本项目公开源码，但不允许未经授权的商业使用。个人、研究、教育、公益等非商业用途适用 [PolyForm Noncommercial License 1.0.0](LICENSE)；商业使用必须事先取得版权所有者的书面许可。
-
-> [!WARNING]
-> 软件按现状提供，使用者自行承担安装、权限调整、数据偏差、服务中断及账号影响等风险。显示结果不是 OpenAI 官方账单或额度保证，详见[免责声明](DISCLAIMER.md)。
-
 > 默认显示深色环形额度仪表；鼠标悬停后向下展开项目详情，移出自动收起。
 
 ![Codex 额度浮窗界面示意](docs/assets/quota-hud-preview.svg)
@@ -166,17 +160,17 @@ zsh ./scripts/test.sh
 - [隐私说明](PRIVACY.md)
 - [安全说明](SECURITY.md)
 - [参与贡献](CONTRIBUTING.md)
-- [免责声明与使用条款](DISCLAIMER.md)
+- [免责声明](DISCLAIMER.md)
 - [版本记录](CHANGELOG.md)
-
-## 许可与责任
-
-本项目使用 [PolyForm Noncommercial License 1.0.0](LICENSE)。允许个人学习、研究、测试、教育、公益及许可证覆盖的其他非商业用途。未经版权所有者事先书面许可，不得进行商业使用、付费分发、与收费产品或服务捆绑，或为组织获取商业利益。
-
-本软件不提供任何担保。使用、修改或分发本软件所产生的风险和后果由使用者自行承担。完整条款以 [LICENSE](LICENSE) 和[免责声明](DISCLAIMER.md)为准。
 
 ## 作者与项目声明
 
 由 [Arlo Yi](https://github.com/ArloYi) 创建并维护。
 
 Codex 与 OpenAI 是其各自权利人的商标或注册商标。本项目是独立社区项目，与 OpenAI 不存在隶属、认可、赞助或官方支持关系。
+
+## 许可与免责声明
+
+本项目使用 [MIT License](LICENSE)，可按许可证条款自由使用、修改和分发。
+
+本软件按现状提供，不附带任何担保。显示的额度和 Token 数据可能与官方记录不一致，使用或依赖本软件所产生的风险由使用者自行承担。详细内容见[免责声明](DISCLAIMER.md)。
