@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1680" height="760" viewBox="0 0 1680 760" role="img" aria-labelledby="title desc">
-  <title id="title">Codex Token Monitor interface states</title>
-  <desc id="desc">The quota HUD in its default, hover-expanded, and screen-edge quota ball states.</desc>
+  <title id="title">Codex 额度浮窗三种形态</title>
+  <desc id="desc">额度浮窗默认显示环形仪表，悬停后展开项目详情，贴近屏幕边缘后收成圆形状态球。</desc>
   <defs>
     <linearGradient id="canvas" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#edf1f6"/>
@@ -17,7 +17,7 @@
       <rect x="1140" y="140" width="500" height="560" rx="26"/>
     </clipPath>
     <style>
-      .ui { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+      .ui { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
       .mono { font-family: SFMono-Regular, Menlo, Consolas, monospace; }
       .panel { fill: #f8f9fb; stroke: #bcc6d2; }
       .chrome { fill: #eef1f5; }
@@ -31,15 +31,15 @@
   </defs>
 
   <rect width="1680" height="760" fill="url(#canvas)"/>
-  <text id="titleText" x="55" y="68" fill="#17202b" class="ui" font-size="30" font-weight="700">Three ways to keep quota visible</text>
-  <text x="55" y="103" fill="#5a6675" class="ui" font-size="16">Compact by default, detailed on hover, and reduced to a quota ball when docked to a screen edge.</text>
+  <text x="55" y="68" fill="#17202b" class="ui" font-size="30" font-weight="700">三种形态，额度始终可见</text>
+  <text x="55" y="103" fill="#5a6675" class="ui" font-size="16">默认保持紧凑，悬停展开详情，拖到屏幕边缘后收成圆形额度状态球。</text>
 
-  <!-- Default state -->
+  <!-- 默认状态 -->
   <g>
     <rect x="40" y="140" width="500" height="560" rx="26" class="panel"/>
     <rect x="40" y="140" width="500" height="54" rx="26" class="chrome"/>
     <circle cx="75" cy="167" r="6" fill="#ff605c"/><circle cx="96" cy="167" r="6" fill="#ffbd44"/><circle cx="117" cy="167" r="6" fill="#00ca4e"/>
-    <text x="145" y="173" class="ui label">Default</text>
+    <text x="145" y="173" class="ui label">默认状态</text>
     <rect x="70" y="225" width="165" height="18" rx="9" class="skeleton"/>
     <rect x="70" y="273" width="390" height="12" rx="6" class="skeleton-soft"/>
     <rect x="70" y="305" width="330" height="12" rx="6" fill="#e9ecf0"/>
@@ -50,19 +50,19 @@
     <circle cx="206" cy="272" r="35" fill="none" stroke="#fff" stroke-opacity=".11" stroke-width="8"/>
     <circle cx="206" cy="272" r="35" fill="none" stroke="#35c75a" stroke-width="8" stroke-linecap="round" stroke-dasharray="97 220" transform="rotate(-90 206 272)"/>
     <text x="206" y="280" text-anchor="middle" fill="#f5f7fa" class="mono" font-size="21" font-weight="650">44%</text>
-    <text x="258" y="250" fill="#f5f7fa" class="ui" font-size="16" font-weight="650">Quota remaining</text>
-    <text x="258" y="276" fill="#fff" fill-opacity=".62" class="mono" font-size="12">This period 56% / 100%</text>
+    <text x="258" y="250" fill="#f5f7fa" class="ui" font-size="16" font-weight="650">额度剩余</text>
+    <text x="258" y="276" fill="#fff" fill-opacity=".62" class="mono" font-size="12">本周期已用 56% / 100%</text>
     <rect x="258" y="299" width="218" height="7" rx="3.5" fill="#fff" fill-opacity=".1"/>
     <rect x="258" y="299" width="96" height="7" rx="3.5" fill="#35c75a"/>
-    <text x="70" y="662" class="ui caption">Only the quota gauge stays visible</text>
+    <text x="70" y="662" class="ui caption">默认只显示额度仪表</text>
   </g>
 
-  <!-- Hover state -->
+  <!-- 悬停状态 -->
   <g>
     <rect x="590" y="140" width="500" height="560" rx="26" class="panel"/>
     <rect x="590" y="140" width="500" height="54" rx="26" class="chrome"/>
     <circle cx="625" cy="167" r="6" fill="#ff605c"/><circle cx="646" cy="167" r="6" fill="#ffbd44"/><circle cx="667" cy="167" r="6" fill="#00ca4e"/>
-    <text x="695" y="173" class="ui label">Hovered</text>
+    <text x="695" y="173" class="ui label">鼠标悬停后</text>
     <rect x="620" y="225" width="165" height="18" rx="9" class="skeleton"/>
     <rect x="620" y="273" width="330" height="12" rx="6" class="skeleton-soft"/>
 
@@ -72,36 +72,36 @@
     <circle cx="706" cy="272" r="35" fill="none" stroke="#fff" stroke-opacity=".11" stroke-width="8"/>
     <circle cx="706" cy="272" r="35" fill="none" stroke="#35c75a" stroke-width="8" stroke-linecap="round" stroke-dasharray="97 220" transform="rotate(-90 706 272)"/>
     <text x="706" y="280" text-anchor="middle" fill="#f5f7fa" class="mono" font-size="21" font-weight="650">44%</text>
-    <text x="758" y="250" fill="#f5f7fa" class="ui" font-size="16" font-weight="650">Quota remaining</text>
-    <text x="758" y="276" fill="#fff" fill-opacity=".62" class="mono" font-size="12">This period 56% / 100%</text>
+    <text x="758" y="250" fill="#f5f7fa" class="ui" font-size="16" font-weight="650">额度剩余</text>
+    <text x="758" y="276" fill="#fff" fill-opacity=".62" class="mono" font-size="12">本周期已用 56% / 100%</text>
     <rect x="758" y="299" width="268" height="7" rx="3.5" fill="#fff" fill-opacity=".1"/>
     <rect x="758" y="299" width="118" height="7" rx="3.5" fill="#35c75a"/>
     <line x1="664" y1="324" x2="1036" y2="324" stroke="#fff" stroke-opacity=".075"/>
 
     <rect x="660" y="336" width="380" height="64" rx="10" fill="#fff" fill-opacity=".045" stroke="#fff" stroke-opacity=".065"/>
     <path d="M678 365v-3h8l3 3h6v16h-17z" fill="#fff" fill-opacity=".5"/>
-    <text x="710" y="358" class="ui metric-label">Current project · this week</text>
-    <text x="710" y="385" class="mono metric-value">Demo Tool · 12.0M</text>
+    <text x="710" y="358" class="ui metric-label">当前项目（本周）</text>
+    <text x="710" y="385" class="mono metric-value">演示工具 · 1200万</text>
     <text x="960" y="374" fill="#fff" fill-opacity=".64" class="mono" font-size="13.5">10.0%</text>
 
     <rect x="660" y="408" width="380" height="64" rx="10" fill="#fff" fill-opacity=".045" stroke="#fff" stroke-opacity=".065"/>
     <path d="M678 434l9-5 9 5-9 5zM678 440l9 5 9-5M678 446l9 5 9-5" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.5"/>
-    <text x="710" y="430" class="ui metric-label">All projects · this week</text>
-    <text x="710" y="457" class="mono metric-value">120.0M</text>
+    <text x="710" y="430" class="ui metric-label">全部项目（本周）</text>
+    <text x="710" y="457" class="mono metric-value">12000万</text>
 
     <rect x="660" y="480" width="380" height="64" rx="10" fill="#fff" fill-opacity=".045" stroke="#fff" stroke-opacity=".065"/>
     <path d="M677 528h20M679 522l6-7 4 3 8-11M693 507h4v4" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.5" stroke-linecap="round"/>
-    <text x="710" y="502" class="ui metric-label">Lifetime usage</text>
-    <text x="710" y="529" class="mono metric-value">100.0M</text>
-    <text x="620" y="662" class="ui caption">Hover to reveal project details below</text>
+    <text x="710" y="502" class="ui metric-label">历史总消耗</text>
+    <text x="710" y="529" class="mono metric-value">1.00亿</text>
+    <text x="620" y="662" class="ui caption">悬停后向下显示项目详情</text>
   </g>
 
-  <!-- Docked state -->
+  <!-- 贴边状态 -->
   <g clip-path="url(#panel3Clip)">
     <rect x="1140" y="140" width="500" height="560" rx="26" class="panel"/>
     <rect x="1140" y="140" width="500" height="54" rx="26" class="chrome"/>
     <circle cx="1175" cy="167" r="6" fill="#ff605c"/><circle cx="1196" cy="167" r="6" fill="#ffbd44"/><circle cx="1217" cy="167" r="6" fill="#00ca4e"/>
-    <text x="1245" y="173" class="ui label">Docked at edge</text>
+    <text x="1245" y="173" class="ui label">贴边状态球</text>
     <rect x="1170" y="225" width="165" height="18" rx="9" class="skeleton"/>
     <rect x="1170" y="273" width="390" height="12" rx="6" class="skeleton-soft"/>
     <rect x="1170" y="305" width="330" height="12" rx="6" fill="#e9ecf0"/>
@@ -114,15 +114,15 @@
     <circle cx="1590" cy="292" r="30" fill="none" stroke="#35c75a" stroke-width="7" stroke-linecap="round" stroke-dasharray="83 188" transform="rotate(-90 1590 292)"/>
     <text x="1590" y="300" text-anchor="middle" fill="#f5f7fa" class="mono" font-size="18" font-weight="700">44%</text>
     <line x1="1634" y1="210" x2="1634" y2="640" stroke="#8b98a8" stroke-opacity=".48" stroke-width="2" stroke-dasharray="5 7"/>
-    <text x="1170" y="662" class="ui caption">Drag to any edge to collapse into a quota ball</text>
+    <text x="1170" y="662" class="ui caption">拖到任一边缘后收成圆形额度状态球</text>
   </g>
 
-  <!-- State arrows -->
+  <!-- 状态箭头 -->
   <path d="M540 382h45" fill="none" stroke="#627084" stroke-width="2" stroke-dasharray="5 7"/>
   <path d="M577 374l9 8-9 8" fill="none" stroke="#627084" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="548" y="416" fill="#576476" class="ui" font-size="12">Hover</text>
+  <text x="548" y="416" fill="#576476" class="ui" font-size="12">悬停</text>
 
   <path d="M1090 382h45" fill="none" stroke="#627084" stroke-width="2" stroke-dasharray="5 7"/>
   <path d="M1127 374l9 8-9 8" fill="none" stroke="#627084" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="1081" y="416" fill="#576476" class="ui" font-size="12">Drag to edge</text>
+  <text x="1081" y="416" fill="#576476" class="ui" font-size="12">拖至边缘</text>
 </svg>

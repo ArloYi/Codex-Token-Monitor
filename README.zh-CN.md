@@ -4,7 +4,7 @@
 
 > 默认显示深色环形额度仪表；鼠标悬停后向下展开项目详情，移出自动收起。
 
-![Codex 额度浮窗界面示意](docs/assets/quota-hud-preview.svg)
+![Codex 额度浮窗三种形态](docs/assets/quota-hud-preview.zh-CN.svg)
 
 `默认：环形剩余 60% ｜ 本周期已用 40% / 100% ｜ 进度条`<br>
 `悬停后向下：当前项目（本周）／全部项目（本周）／历史总消耗`
