@@ -4,7 +4,7 @@
 
 > A dark circular quota gauge for macOS; hover to reveal project details below it.
 
-![Codex Token Monitor preview](docs/assets/quota-hud-preview.svg)
+![Codex Token Monitor three-state preview](docs/assets/quota-hud-preview.en.svg)
 
 `Default: 60% remaining ring | 40% used / 100% | progress bar`<br>
 `Hover downward: Current project / All projects / Lifetime usage`
