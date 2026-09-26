@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.0 (unreleased)
+## 1.3.0 (preview)
 
 - 修复 Codex 升级后可执行文件路径变化导致的额度读取失败；支持运行中应用、当前安装路径、PATH 和 CODEX_BINARY。
 - 支持 CODEX_HOME；额度接口优先使用 rateLimitsByLimitId.codex，兼容旧响应并安全处理空值。

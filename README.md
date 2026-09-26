@@ -13,7 +13,7 @@ The macOS edition requires macOS 13 or later. Universal 2 builds support Apple s
 
 ### Windows
 
-From a source checkout, open Codex and run `Windows/Start.cmd`. When a Windows ZIP is published in Releases, extract **all files** and double-click `Start.cmd`. No extra runtime installation is required. Hover to expand, drag to move or dock as a circle, and right-click to exit. See [Windows instructions](Windows/README.md).
+Download the Windows ZIP from the [v1.3.0 preview](https://github.com/ArloYi/Codex-Token-Monitor/releases/tag/v1.3.0), extract **all files**, open Codex and double-click `Start.cmd`. From a source checkout, run `Windows/Start.cmd`. No extra runtime installation is required. Hover to expand, drag to move or dock as a circle, and right-click to exit. See [Windows instructions](Windows/README.md).
 
 Windows shows the **most recently active local project**, not the currently selected task. Its Token totals use local session rollouts; macOS uses the desktop task title and database. Windows UI is currently English. Windows desktop behavior is pending a real Windows smoke test.
 
@@ -35,7 +35,7 @@ The HUD appears only while Codex is the frontmost app. Its main surface passes c
 
 ## Download
 
-Download the latest Universal 2 ZIP and checksum from [GitHub Releases](https://github.com/ArloYi/Codex-Token-Monitor/releases/latest). Extract the archive, move the app to Applications if desired, and open it.
+Download the Universal 2 ZIP and checksum from the [v1.3.0 preview](https://github.com/ArloYi/Codex-Token-Monitor/releases/tag/v1.3.0) for current Codex compatibility. The [latest stable release](https://github.com/ArloYi/Codex-Token-Monitor/releases/latest) remains v1.2.2. Extract the archive, move the app to Applications if desired, and open it.
 
 The app uses a local ad-hoc signature and is not notarized by Apple. On first launch, macOS may ask you to confirm the app under System Settings > Privacy & Security.
 

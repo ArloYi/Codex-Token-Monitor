@@ -1,10 +1,10 @@
 # Codex Token Monitor｜Codex 额度浮窗
 
-## 1.3.0 双系统版本（待发布）
+## 1.3.0 双系统预览版
 
 macOS 版支持 macOS 13+、Apple 芯片和 Intel；Windows 便携版支持 Windows 10/11，使用系统自带 Windows PowerShell 5.1 和 .NET Framework。两端都需要安装并登录 Codex。
 
-Windows：源码用户运行 `Windows/Start.cmd`；后续发布对应 ZIP 后完整解压，打开 Codex，再双击 `Start.cmd`。支持环形额度、悬停详情、拖动和贴边圆球，右键可以刷新或退出，无需额外安装运行环境。
+Windows：从 [v1.3.0 预览版](https://github.com/ArloYi/Codex-Token-Monitor/releases/tag/v1.3.0) 下载对应 ZIP，完整解压，打开 Codex，再双击 `Start.cmd`；源码用户运行 `Windows/Start.cmd`。macOS 同样在该页面下载 Universal 2 ZIP。支持环形额度、悬停详情、拖动和贴边圆球，右键可以刷新或退出，无需额外安装运行环境。
 
 Windows 首版显示最近活跃的本地项目，不代表桌面当前选中的任务；Token 从本地 session rollout 统计，界面暂为英文、尺寸固定。WSL 和归档会话不计入该版本地统计。详见 [Windows 使用说明](Windows/README.md)。真实 Windows 桌面行为仍待验收。
 

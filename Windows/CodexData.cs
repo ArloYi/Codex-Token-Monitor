@@ -51,7 +51,7 @@ namespace CodexMonitor {
                 using (process) {
                     try {
                         var root = Path.GetDirectoryName(process.MainModule.FileName);
-                        foreach (string relative in new[] { "resources/codex.exe", "resources/codex-cli/codex.exe", "codex.exe" }) {
+                        foreach (string relative in new[] { "resources/codex.exe", "resources/codex-cli/codex.exe" }) {
                             var path = Path.Combine(root, relative); if (File.Exists(path)) return path;
                         }
                     } catch (System.ComponentModel.Win32Exception) { } catch (InvalidOperationException) { }
