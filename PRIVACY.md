@@ -1,5 +1,9 @@
 # Privacy
 
+The Windows portable edition reads session rollout files under `CODEX_HOME` (default `%USERPROFILE%\.codex`) and starts the local Codex app-server over stdio. It saves only window position under `%LOCALAPPDATA%\CodexTokenMonitor`. It does not read or copy authentication files, install startup services, or send local session content. Codex itself may communicate with its service to return quota and account usage.
+
+Windows 便携版读取 CODEX_HOME 下的本地 session rollout，并通过标准输入输出调用本机 Codex app-server；只保存窗口位置，不读取或复制认证文件，不安装自启动服务，也不发送本地会话内容。Codex 自身查询额度时可能访问其服务。
+
 [English](#english) | [简体中文](#简体中文)
 
 ## English

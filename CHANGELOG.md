@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 (unreleased)
+
+- 修复 Codex 升级后可执行文件路径变化导致的额度读取失败；支持运行中应用、当前安装路径、PATH 和 CODEX_BINARY。
+- 支持 CODEX_HOME；额度接口优先使用 rateLimitsByLimitId.codex，兼容旧响应并安全处理空值。
+- 增加 Windows 10/11 便携浮窗版，支持悬停详情、拖动、贴边圆球和本地 rollout Token 统计。
+- 增加 Windows 协议测试、HUD 编译和 ZIP 打包 CI；两端生成独立安装包。
+
+Windows 首版使用最近活跃项目，暂不提供 macOS 的当前任务识别和缩放功能。
+
 ## 1.2.2
 
 - 改用 MIT License，允许按许可证条款自由使用、修改和分发。

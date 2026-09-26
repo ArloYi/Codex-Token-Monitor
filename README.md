@@ -2,14 +2,20 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-> A dark circular quota gauge for macOS; hover to reveal project details below it.
+> A floating Codex quota gauge for macOS and Windows; hover for local Token usage.
 
 ![Codex Token Monitor three-state preview](docs/assets/quota-hud-preview.en.svg)
 
 `Default: 60% remaining ring | 40% used / 100% | progress bar`<br>
 `Hover downward: Current project / All projects / Lifetime usage`
 
-Codex Token Monitor requires macOS 13 or later and the Codex desktop app installed and signed in. Release builds are Universal 2 and support both Apple silicon and Intel Macs.
+The macOS edition requires macOS 13 or later. Universal 2 builds support Apple silicon and Intel Macs. The Windows portable edition requires Windows 10/11 with built-in Windows PowerShell 5.1. Both require Codex installed and signed in.
+
+### Windows
+
+From a source checkout, open Codex and run `Windows/Start.cmd`. When a Windows ZIP is published in Releases, extract **all files** and double-click `Start.cmd`. No extra runtime installation is required. Hover to expand, drag to move or dock as a circle, and right-click to exit. See [Windows instructions](Windows/README.md).
+
+Windows shows the **most recently active local project**, not the currently selected task. Its Token totals use local session rollouts; macOS uses the desktop task title and database. Windows UI is currently English. Windows desktop behavior is pending a real Windows smoke test.
 
 ## What it shows
 
@@ -49,6 +55,8 @@ Requirements:
 - Codex desktop app
 - Homebrew and `ripgrep` for the test suite
 - The system `sqlite3`, `codesign`, and `zip` tools
+
+Executable discovery supports the current Codex/ChatGPT app bundles and `PATH`. Set `CODEX_BINARY` to an executable path if needed; `CODEX_HOME` overrides the default `.codex` directory. The app-server uses its default stdio transport and handles both legacy and multi-bucket quota responses.
 
 Install the test dependency with:
 
@@ -139,6 +147,7 @@ The test suite checks Token formatting, project selection, adaptive text sizing,
 ## Known limitations
 
 - macOS 13 or later on Apple silicon or Intel.
+- Windows 10/11 portable edition: recently active project selection, English UI, fixed HUD size. Archived and WSL-only session data are excluded from Windows local totals.
 - The app depends on Codex's current local state and `app-server` response structure.
 - Project totals are derived from locally available Codex history and are not an official billing statement.
 - Automatic updates, Apple notarization, and launch at login are not included.

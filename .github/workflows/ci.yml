@@ -1,4 +1,4 @@
-name: macOS CI
+name: Desktop CI
 
 on:
   push:
@@ -21,3 +21,30 @@ jobs:
         run: zsh ./scripts/test.sh
       - name: Build release archive
         run: zsh ./scripts/package-release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-universal
+          path: dist/*
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Windows protocol
+        shell: powershell
+        run: ./Windows/CodexQuotaHUD.ps1 -SelfTest
+      - name: Compile Windows HUD
+        shell: powershell
+        run: |
+          Add-Type -AssemblyName System.Web.Extensions,System.Windows.Forms,System.Drawing
+          $source = [IO.File]::ReadAllText("$pwd/Windows/CodexData.cs") + [Environment]::NewLine + [IO.File]::ReadAllText("$pwd/Windows/Hud.cs")
+          Add-Type -TypeDefinition $source -ReferencedAssemblies System,System.Web.Extensions,System.Windows.Forms,System.Drawing,System.Core
+          $hud = New-Object CodexMonitor.Hud
+          $hud.Dispose()
+      - name: Package Windows portable edition
+        shell: powershell
+        run: ./scripts/package-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: dist/*

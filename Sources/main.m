@@ -5,6 +5,46 @@
 
 static const NSTimeInterval AppServerResponseTimeout = 10.0;
 
+static NSDictionary *_Nullable CodexPrimaryWindow(id result) {
+    if (![result isKindOfClass:NSDictionary.class]) return nil;
+    id buckets = result[@"rateLimitsByLimitId"];
+    id bucket = [buckets isKindOfClass:NSDictionary.class] ? buckets[@"codex"] : nil;
+    if (![bucket isKindOfClass:NSDictionary.class]) bucket = result[@"rateLimits"];
+    if (![bucket isKindOfClass:NSDictionary.class]) return nil;
+    id primary = bucket[@"primary"];
+    if (![primary isKindOfClass:NSDictionary.class]) return nil;
+    id used = primary[@"usedPercent"];
+    return [used isKindOfClass:NSNumber.class] && isfinite([used doubleValue])
+        ? primary : nil;
+}
+
+static NSString *_Nullable CodexExecutablePath(void) {
+    NSMutableArray<NSString *> *candidates = [NSMutableArray new];
+    NSString *override = NSProcessInfo.processInfo.environment[@"CODEX_BINARY"];
+    if (override.length) [candidates addObject:override];
+    NSMutableArray<NSString *> *bundles = [NSMutableArray new];
+    for (NSRunningApplication *app in [NSRunningApplication
+            runningApplicationsWithBundleIdentifier:@"com.openai.codex"]) {
+        if (app.bundleURL.path) [bundles addObject:app.bundleURL.path];
+    }
+    [bundles addObjectsFromArray:@[@"/Applications/Codex.app", @"/Applications/ChatGPT.app"]];
+    for (NSString *bundle in bundles) {
+        for (NSString *relative in @[@"Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+                                    @"Contents/Resources/codex"]) {
+            [candidates addObject:[bundle stringByAppendingPathComponent:relative]];
+        }
+    }
+    NSString *searchPath = NSProcessInfo.processInfo.environment[@"PATH"] ?: @"";
+    for (NSString *directory in [[searchPath stringByAppendingString:
+            @":/opt/homebrew/bin:/usr/local/bin"] componentsSeparatedByString:@":"]) {
+        if (directory.length) [candidates addObject:[directory stringByAppendingPathComponent:@"codex"]];
+    }
+    for (NSString *candidate in candidates) {
+        if ([NSFileManager.defaultManager isExecutableFileAtPath:candidate]) return candidate;
+    }
+    return nil;
+}
+
 static NSString *FormatTokens(long long tokens) {
     double value = (double)tokens / 10000.0;
     if (value >= 1000) {
@@ -508,6 +548,8 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
 @implementation CodexDataSource
 
 - (NSURL *)codexHome {
+    NSString *customHome = NSProcessInfo.processInfo.environment[@"CODEX_HOME"];
+    if (customHome.length) return [NSURL fileURLWithPath:customHome.stringByStandardizingPath];
     return [[[NSFileManager defaultManager] homeDirectoryForCurrentUser]
         URLByAppendingPathComponent:@".codex"];
 }
@@ -849,10 +891,8 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
 }
 
 - (nullable QuotaSnapshot *)loadQuota {
-    NSString *binaryPath =
-        @"/Applications/ChatGPT.app/Contents/Resources/codex";
-    if (![[NSFileManager defaultManager]
-            isExecutableFileAtPath:binaryPath]) {
+    NSString *binaryPath = CodexExecutablePath();
+    if (!binaryPath) {
         return nil;
     }
 
@@ -860,7 +900,7 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
     NSPipe *input = [NSPipe pipe];
     NSPipe *output = [NSPipe pipe];
     task.executableURL = [NSURL fileURLWithPath:binaryPath];
-    task.arguments = @[@"app-server", @"--stdio"];
+    task.arguments = @[@"app-server"];
     task.standardInput = input;
     task.standardOutput = output;
     task.standardError = [NSFileHandle fileHandleWithNullDevice];
@@ -912,13 +952,12 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
     [writer closeFile];
     if (task.running) [task terminate];
 
-    NSDictionary *primary =
-        rateResponse[@"result"][@"rateLimits"][@"primary"];
+    NSDictionary *primary = CodexPrimaryWindow(rateResponse[@"result"]);
     NSNumber *usedPercent = primary[@"usedPercent"];
     if (![usedPercent isKindOfClass:[NSNumber class]]) return nil;
 
     QuotaSnapshot *snapshot = [QuotaSnapshot new];
-    snapshot.usedPercent = usedPercent.doubleValue;
+    snapshot.usedPercent = MIN(100, MAX(0, usedPercent.doubleValue));
 
     NSNumber *resetEpoch = primary[@"resetsAt"];
     if ([resetEpoch isKindOfClass:[NSNumber class]]) {
@@ -931,8 +970,9 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
         windowDuration.integerValue > 0
             ? windowDuration.integerValue
             : 10080;
-    NSNumber *lifetimeTokens =
-        usageResponse[@"result"][@"summary"][@"lifetimeTokens"];
+    id usageResult = usageResponse[@"result"];
+    id summary = [usageResult isKindOfClass:NSDictionary.class] ? usageResult[@"summary"] : nil;
+    NSNumber *lifetimeTokens = [summary isKindOfClass:NSDictionary.class] ? summary[@"lifetimeTokens"] : nil;
     if ([lifetimeTokens isKindOfClass:[NSNumber class]] &&
         lifetimeTokens.longLongValue > 0) {
         snapshot.lifetimeTokens = lifetimeTokens.longLongValue;
@@ -2681,6 +2721,15 @@ static int RunSelfTest(void) {
             return 1;
         }
         CodexDataSource *dataSource = [CodexDataSource new];
+        if (CodexPrimaryWindow(@{@"rateLimits": NSNull.null}) ||
+            CodexPrimaryWindow(@{@"rateLimits": @{@"primary": NSNull.null}}) ||
+            [CodexPrimaryWindow(@{@"rateLimitsByLimitId": @{@"codex":
+                @{@"primary": @{@"usedPercent": @25}}},
+                @"rateLimits": @{@"primary": @{@"usedPercent": @90}}})[@"usedPercent"] intValue] != 25 ||
+            [CodexPrimaryWindow(@{@"rateLimits": @{@"primary": @{@"usedPercent": @40}}})[@"usedPercent"] intValue] != 40) {
+            fprintf(stderr, "quota protocol compatibility test failed\n");
+            return 1;
+        }
         NSDictionary *nullTokenEvent = @{
             @"timestamp": @"2026-07-22T00:00:00.000Z",
             @"payload": @{
