@@ -2,6 +2,8 @@
 #import <ApplicationServices/ApplicationServices.h>
 #import <errno.h>
 #import <poll.h>
+#import <sys/stat.h>
+#import <signal.h>
 
 static const NSTimeInterval AppServerResponseTimeout = 10.0;
 
@@ -545,7 +547,9 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
     };
 }
 
-@implementation CodexDataSource
+@implementation CodexDataSource {
+    NSMutableDictionary<NSString *, NSDictionary *> *_baselineCache;
+}
 
 - (NSURL *)codexHome {
     NSString *customHome = NSProcessInfo.processInfo.environment[@"CODEX_HOME"];
@@ -579,6 +583,7 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
 
     NSDictionary *usage =
         [self queryWeeklyUsageSince:windowStart projectPath:path];
+    if (!usage) return nil; // Preserve the previous snapshot on transient DB errors.
     ProjectSnapshot *snapshot = [ProjectSnapshot new];
     snapshot.name = name;
     snapshot.path = path;
@@ -678,20 +683,38 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
     };
 }
 
-- (NSString *)runSQLiteQuery:(NSString *)query
+- (nullable NSString *)runSQLiteQuery:(NSString *)query
                  databaseURL:(NSURL *)databaseURL {
     NSTask *task = [NSTask new];
     NSPipe *output = [NSPipe pipe];
     task.executableURL = [NSURL fileURLWithPath:@"/usr/bin/sqlite3"];
     task.arguments =
-        @[@"-separator", @"\t", databaseURL.path, query];
+        @[@"-readonly", @"-cmd", @".timeout 1000", @"-separator", @"\t", databaseURL.path, query];
     task.standardOutput = output;
     task.standardError = [NSFileHandle fileHandleWithNullDevice];
-    if (![task launchAndReturnError:nil]) return @"";
+    if (![task launchAndReturnError:nil]) return nil;
+    // Drain stdout while sqlite is running: waiting first deadlocks once
+    // a query's output exceeds the pipe capacity. Bound locked/failed reads.
+    NSMutableData *data = [NSMutableData new];
+    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:3];
+    int fd = output.fileHandleForReading.fileDescriptor;
+    BOOL finished = NO;
+    while (deadline.timeIntervalSinceNow > 0 && data.length <= 8 * 1024 * 1024) {
+        struct pollfd descriptor = {fd, POLLIN, 0};
+        int ready = poll(&descriptor, 1, 50);
+        if (ready < 0 && errno == EINTR) continue;
+        if (ready < 0) break;
+        if (ready == 0) continue;
+        char buffer[65536];
+        ssize_t length = read(fd, buffer, sizeof(buffer));
+        if (length == 0) { finished = YES; break; }
+        if (length < 0) { if (errno == EINTR) continue; break; }
+        [data appendBytes:buffer length:(NSUInteger)length];
+    }
+    if (!finished && task.running) kill(task.processIdentifier, SIGKILL);
     [task waitUntilExit];
-
-    NSData *data =
-        [output.fileHandleForReading readDataToEndOfFile];
+    [output.fileHandleForReading closeFile];
+    if (!finished || task.terminationStatus != 0) return nil;
     NSString *row = [[NSString alloc]
         initWithData:data
         encoding:NSUTF8StringEncoding];
@@ -771,7 +794,7 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
     return nil;
 }
 
-- (NSDictionary *)queryWeeklyUsageSince:(NSDate *)windowStart
+- (nullable NSDictionary *)queryWeeklyUsageSince:(NSDate *)windowStart
                             projectPath:(NSString *)projectPath {
     NSURL *databaseURL =
         [[self codexHome] URLByAppendingPathComponent:@"state_5.sqlite"];
@@ -788,25 +811,11 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
         startEpoch
     ];
 
-    NSTask *task = [NSTask new];
-    NSPipe *output = [NSPipe pipe];
-    task.executableURL = [NSURL fileURLWithPath:@"/usr/bin/sqlite3"];
-    task.arguments = @[@"-separator", @"\t", databaseURL.path, query];
-    task.standardOutput = output;
-    task.standardError = [NSFileHandle fileHandleWithNullDevice];
-
-    if (![task launchAndReturnError:nil]) {
-        return @{@"project": @0, @"total": @0};
-    }
-    [task waitUntilExit];
-
-    NSData *resultData =
-        [output.fileHandleForReading readDataToEndOfFile];
-    NSString *rows = [[NSString alloc]
-        initWithData:resultData
-        encoding:NSUTF8StringEncoding];
+    NSString *rows = [self runSQLiteQuery:query databaseURL:databaseURL];
+    if (!rows) return nil;
     __block long long projectTokens = 0;
     __block long long totalTokens = 0;
+    NSMutableSet<NSString *> *activeBaselines = [NSMutableSet new];
     NSString *standardizedProjectPath =
         projectPath.stringByStandardizingPath;
 
@@ -822,6 +831,7 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
         long long weeklyTokens = storedTokens;
 
         if (createdAt < startEpoch && rolloutPath.length > 0) {
+            [activeBaselines addObject:rolloutPath];
             weeklyTokens = [self tokensSince:windowStart
                                   rolloutPath:rolloutPath
                                  currentTotal:storedTokens];
@@ -837,57 +847,85 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
         }
     }];
 
+    // Retain every baseline in this query, however many there are. Prune only
+    // histories no longer in the active window, not the whole cache at a limit.
+    for (NSString *path in _baselineCache.allKeys) {
+        if (![activeBaselines containsObject:path]) [_baselineCache removeObjectForKey:path];
+    }
+
     return @{@"project": @(projectTokens), @"total": @(totalTokens)};
 }
 
 - (long long)tokensSince:(NSDate *)windowStart
              rolloutPath:(NSString *)rolloutPath
             currentTotal:(long long)currentTotal {
-    NSString *contents =
-        [NSString stringWithContentsOfFile:rolloutPath
-                                  encoding:NSUTF8StringEncoding
-                                     error:nil];
-    if (!contents) return currentTotal;
-
+    struct stat info;
+    if (stat(rolloutPath.fileSystemRepresentation, &info) != 0) return currentTotal;
+    if (!_baselineCache) _baselineCache = [NSMutableDictionary new];
+    NSDictionary *cached = _baselineCache[rolloutPath];
+    BOOL validCache = cached &&
+        [cached[@"window"] doubleValue] == windowStart.timeIntervalSince1970 &&
+        [cached[@"inode"] unsignedLongLongValue] == info.st_ino &&
+        [cached[@"device"] unsignedLongLongValue] == info.st_dev &&
+        [cached[@"size"] longLongValue] <= info.st_size &&
+        (info.st_size > [cached[@"size"] longLongValue] ||
+         [cached[@"modified"] doubleValue] ==
+             info.st_mtimespec.tv_sec + info.st_mtimespec.tv_nsec / 1e9);
+    long long baseline = validCache ? [cached[@"baseline"] longLongValue] : 0;
+    if (validCache && [cached[@"complete"] boolValue]) return MAX(0, currentTotal - baseline);
+    FILE *file = fopen(rolloutPath.fileSystemRepresentation, "rb");
+    if (!file) return currentTotal;
+    off_t offset = validCache ? [cached[@"offset"] longLongValue] : 0;
+    fseeko(file, offset, SEEK_SET);
     NSISO8601DateFormatter *formatter = [NSISO8601DateFormatter new];
     formatter.formatOptions =
         NSISO8601DateFormatWithInternetDateTime |
         NSISO8601DateFormatWithFractionalSeconds;
     NSString *windowStartText = [formatter stringFromDate:windowStart];
 
-    __block long long baseline = 0;
-    __block long long latest = 0;
-    [contents enumerateLinesUsingBlock:^(NSString *line, BOOL *stop) {
-        if ([line rangeOfString:@"\"type\":\"token_count\""].location ==
-            NSNotFound) {
-            return;
-        }
-
-        NSData *data = [line dataUsingEncoding:NSUTF8StringEncoding];
-        id event =
-            [NSJSONSerialization JSONObjectWithData:data
-                                            options:0
-                                              error:nil];
-        NSString *timestamp =
-            [event isKindOfClass:[NSDictionary class]] &&
-            [event[@"timestamp"] isKindOfClass:[NSString class]]
-                ? event[@"timestamp"]
-                : nil;
-        NSNumber *tokens = TotalTokensFromRolloutEvent(event);
-        if (![timestamp isKindOfClass:[NSString class]] ||
-            ![tokens isKindOfClass:[NSNumber class]]) {
-            return;
-        }
-
-        if ([timestamp compare:windowStartText] == NSOrderedAscending) {
-            baseline = tokens.longLongValue;
+    BOOL complete = NO;
+    char buffer[65536];
+    NSMutableData *lineData = [NSMutableData new];
+    BOOL oversized = NO;
+    while (fgets(buffer, sizeof(buffer), file)) {
+        size_t length = strlen(buffer);
+        if (!oversized && lineData.length + length <= 1024 * 1024) {
+            [lineData appendBytes:buffer length:length];
         } else {
-            latest = tokens.longLongValue;
+            oversized = YES;
         }
-    }];
-
-    if (latest == 0) latest = currentTotal;
-    return MAX(0, latest - baseline);
+        if (length == 0 || buffer[length - 1] != '\n') continue;
+        offset = ftello(file); // Incomplete trailing records are retried after append.
+        @autoreleasepool {
+            NSString *line = !oversized ? [[NSString alloc] initWithData:lineData
+                encoding:NSUTF8StringEncoding] : nil;
+            if ([line containsString:@"token_count"]) {
+                id event = [NSJSONSerialization JSONObjectWithData:lineData options:0 error:nil];
+                NSString *timestamp = [event isKindOfClass:NSDictionary.class] &&
+                    [event[@"timestamp"] isKindOfClass:NSString.class] ? event[@"timestamp"] : nil;
+                NSNumber *tokens = TotalTokensFromRolloutEvent(event);
+                if (timestamp && tokens) {
+                    if ([timestamp compare:windowStartText] == NSOrderedAscending) {
+                        baseline = tokens.longLongValue;
+                    } else {
+                        complete = YES;
+                    }
+                }
+            }
+        }
+        [lineData setLength:0];
+        oversized = NO;
+        if (complete) break;
+    }
+    BOOL failed = ferror(file) != 0;
+    fclose(file);
+    if (!failed) {
+        _baselineCache[rolloutPath] = @{@"window": @(windowStart.timeIntervalSince1970),
+            @"inode": @(info.st_ino), @"device": @(info.st_dev), @"size": @(info.st_size),
+            @"modified": @(info.st_mtimespec.tv_sec + info.st_mtimespec.tv_nsec / 1e9),
+            @"offset": @(offset), @"baseline": @(baseline), @"complete": @(complete)};
+    }
+    return MAX(0, currentTotal - baseline);
 }
 
 - (nullable QuotaSnapshot *)loadQuota {
@@ -1000,22 +1038,8 @@ static NSDictionary *_Nullable ProjectSelectionForActiveThread(
         return 0;
     }
 
-    NSTask *task = [NSTask new];
-    NSPipe *output = [NSPipe pipe];
-    task.executableURL = [NSURL fileURLWithPath:@"/usr/bin/sqlite3"];
-    task.arguments = @[
-        databaseURL.path,
-        @"SELECT COALESCE(SUM(tokens_used),0) FROM threads;"
-    ];
-    task.standardOutput = output;
-    task.standardError = [NSFileHandle fileHandleWithNullDevice];
-    if (![task launchAndReturnError:nil]) return 0;
-    [task waitUntilExit];
-
-    NSData *data = [output.fileHandleForReading readDataToEndOfFile];
-    NSString *value = [[NSString alloc]
-        initWithData:data
-        encoding:NSUTF8StringEncoding];
+    NSString *value = [self runSQLiteQuery:
+        @"SELECT COALESCE(SUM(tokens_used),0) FROM threads;" databaseURL:databaseURL];
     return MAX(0, value.longLongValue);
 }
 
@@ -1866,6 +1890,7 @@ static NSRect HUDBallFrameForDock(
     ProjectSnapshot *_project;
     NSDate *_lastQuotaAttempt;
     BOOL _refreshInFlight;
+    BOOL _quotaRefreshInFlight;
     BOOL _positionInitialized;
     BOOL _detailsExpanded;
     CGFloat _hudScale;
@@ -1891,6 +1916,7 @@ static NSRect HUDBallFrameForDock(
                                             selector:@selector(refresh)
                                             userInfo:nil
                                              repeats:YES];
+    [NSRunLoop.mainRunLoop addTimer:_timer forMode:NSRunLoopCommonModes];
     return self;
 }
 
@@ -2467,22 +2493,33 @@ static NSRect HUDBallFrameForDock(
 }
 
 - (void)refresh {
-    if (_refreshInFlight) return;
-    _refreshInFlight = YES;
-
     BOOL shouldRefreshQuota =
         [NSDate.date timeIntervalSinceDate:_lastQuotaAttempt] >= 60;
-    QuotaSnapshot *existingQuota = _quota;
     CodexDataSource *dataSource = _dataSource;
-
+    // Quota updates must not wait for a large local-history scan.
+    if (shouldRefreshQuota && !_quotaRefreshInFlight) {
+        _quotaRefreshInFlight = YES;
+        _lastQuotaAttempt = NSDate.date;
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            @autoreleasepool {
+                QuotaSnapshot *freshQuota = [dataSource loadQuota];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    self->_quotaRefreshInFlight = NO;
+                    if (freshQuota) self->_quota = freshQuota;
+                    [self updateContent];
+                    if (NSProcessInfo.processInfo.environment[@"CODEX_MONITOR_DEBUG"])
+                        NSLog(@"monitor refresh: quota %@", freshQuota ? @"ok" : @"unavailable");
+                });
+            }
+        });
+    }
+    if (_refreshInFlight) return;
+    _refreshInFlight = YES;
+    QuotaSnapshot *effectiveQuota = _quota;
+    NSDate *started = NSDate.date;
     dispatch_async(
         dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-            QuotaSnapshot *freshQuota =
-                shouldRefreshQuota
-                    ? [dataSource loadQuota]
-                    : existingQuota;
-            QuotaSnapshot *effectiveQuota =
-                freshQuota ?: existingQuota;
+          @autoreleasepool {
             NSDate *windowStart =
                 effectiveQuota.resetsAt &&
                 effectiveQuota.windowDurationMinutes > 0
@@ -2496,13 +2533,13 @@ static NSRect HUDBallFrameForDock(
 
             dispatch_async(dispatch_get_main_queue(), ^{
                 self->_refreshInFlight = NO;
-                if (shouldRefreshQuota) {
-                    self->_lastQuotaAttempt = NSDate.date;
-                }
-                if (freshQuota) self->_quota = freshQuota;
                 if (freshProject) self->_project = freshProject;
                 [self updateContent];
+                if (NSProcessInfo.processInfo.environment[@"CODEX_MONITOR_DEBUG"])
+                    NSLog(@"monitor refresh: project %@ %.3fs", freshProject ? @"ok" : @"unavailable",
+                        [NSDate.date timeIntervalSinceDate:started]);
             });
+          }
         }
     );
 }
@@ -2721,6 +2758,75 @@ static int RunSelfTest(void) {
             return 1;
         }
         CodexDataSource *dataSource = [CodexDataSource new];
+        // A large history tail must not be parsed on each refresh. The DB
+        // already supplies the current total; only the pre-window baseline is needed.
+        NSString *fixture = [NSTemporaryDirectory() stringByAppendingPathComponent:
+            [NSString stringWithFormat:@"quota-rollout-%@.jsonl", NSUUID.UUID.UUIDString]];
+        [NSFileManager.defaultManager createFileAtPath:fixture contents:nil attributes:nil];
+        NSFileHandle *fixtureWriter = [NSFileHandle fileHandleForWritingAtPath:fixture];
+        NSString *prefix = @"{\"timestamp\":\"2026-10-02T00:00:00.000Z\",\"payload\":{\"type\":\"token_count\",\"info\":{\"total_token_usage\":{\"total_tokens\":100}}}}\n"
+            "{\"timestamp\":\"2026-10-03T00:00:00.000Z\",\"payload\":{\"type\":\"token_count\",\"info\":{\"total_token_usage\":{\"total_tokens\":200}}}}\n";
+        [fixtureWriter writeData:[prefix dataUsingEncoding:NSUTF8StringEncoding]];
+        NSMutableData *largeLine = [NSMutableData dataWithLength:1024 * 1024];
+        memset(largeLine.mutableBytes, 'x', largeLine.length);
+        ((char *)largeLine.mutableBytes)[largeLine.length - 1] = '\n';
+        for (NSUInteger i = 0; i < 200; i++) [fixtureWriter writeData:largeLine];
+        [fixtureWriter closeFile];
+        NSDate *scanStart = NSDate.date;
+        NSDate *cutoff = [NSDate dateWithTimeIntervalSince1970:1790985600];
+        long long firstUsage = [dataSource tokensSince:cutoff rolloutPath:fixture currentTotal:300];
+        long long nextUsage = [dataSource tokensSince:cutoff rolloutPath:fixture currentTotal:350];
+        NSTimeInterval scanSeconds = [NSDate.date timeIntervalSinceDate:scanStart];
+        [NSFileManager.defaultManager removeItemAtPath:fixture error:nil];
+        if (firstUsage != 200 || nextUsage != 250 || scanSeconds > 1.0) {
+            fprintf(stderr, "large rollout refresh regression failed (%.3fs)\n", scanSeconds);
+            return 1;
+        }
+        NSString *databaseFixture = [NSTemporaryDirectory() stringByAppendingPathComponent:
+            [NSString stringWithFormat:@"quota-query-%@.sqlite", NSUUID.UUID.UUIDString]];
+        [NSFileManager.defaultManager createFileAtPath:databaseFixture contents:nil attributes:nil];
+        NSString *largeRows = [dataSource runSQLiteQuery:
+            @"WITH RECURSIVE numbers(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM numbers WHERE n<2000) SELECT printf('%01024d',n) FROM numbers;"
+            databaseURL:[NSURL fileURLWithPath:databaseFixture]];
+        [NSFileManager.defaultManager removeItemAtPath:databaseFixture error:nil];
+        if (largeRows.length != 2000 * 1025) {
+            fprintf(stderr, "SQLite pipe draining regression failed\n");
+            return 1;
+        }
+        [NSFileManager.defaultManager createFileAtPath:fixture
+            contents:[[prefix componentsSeparatedByString:@"\n"][0]
+                dataUsingEncoding:NSUTF8StringEncoding] attributes:nil];
+        // Complete a previously partial line, append a new counter, then truncate.
+        [dataSource tokensSince:cutoff rolloutPath:fixture currentTotal:100];
+        fixtureWriter = [NSFileHandle fileHandleForWritingAtPath:fixture];
+        [fixtureWriter seekToEndOfFile];
+        [fixtureWriter writeData:[[@"\n" stringByAppendingString:
+            [prefix componentsSeparatedByString:@"\n"][1]] dataUsingEncoding:NSUTF8StringEncoding]];
+        [fixtureWriter writeData:[@"\n" dataUsingEncoding:NSUTF8StringEncoding]];
+        [fixtureWriter closeFile];
+        long long appendedUsage = [dataSource tokensSince:cutoff rolloutPath:fixture currentTotal:350];
+        [@"{}\n" writeToFile:fixture atomically:NO encoding:NSUTF8StringEncoding error:nil];
+        long long truncatedUsage = [dataSource tokensSince:cutoff rolloutPath:fixture currentTotal:10];
+        [NSFileManager.defaultManager removeItemAtPath:fixture error:nil];
+        if (appendedUsage != 250 || truncatedUsage != 10) {
+            fprintf(stderr, "rollout append/truncation regression failed\n");
+            return 1;
+        }
+        NSString *cacheFixtureDirectory = [fixture stringByAppendingString:@"-cache"];
+        [NSFileManager.defaultManager createDirectoryAtPath:cacheFixtureDirectory
+            withIntermediateDirectories:YES attributes:nil error:nil];
+        for (NSUInteger i = 0; i < 1025; i++) {
+            NSString *path = [cacheFixtureDirectory stringByAppendingPathComponent:
+                [NSString stringWithFormat:@"%lu.jsonl", (unsigned long)i]];
+            [prefix writeToFile:path atomically:NO encoding:NSUTF8StringEncoding error:nil];
+            [dataSource tokensSince:cutoff rolloutPath:path currentTotal:300];
+        }
+        NSUInteger cacheEntries = [[dataSource valueForKey:@"baselineCache"] count];
+        [NSFileManager.defaultManager removeItemAtPath:cacheFixtureDirectory error:nil];
+        if (cacheEntries < 1025) {
+            fprintf(stderr, "large history cache retention regression failed\n");
+            return 1;
+        }
         if (CodexPrimaryWindow(@{@"rateLimits": NSNull.null}) ||
             CodexPrimaryWindow(@{@"rateLimits": @{@"primary": NSNull.null}}) ||
             [CodexPrimaryWindow(@{@"rateLimitsByLimitId": @{@"codex":

@@ -1,14 +1,16 @@
 # Codex Token Monitor｜Codex 额度浮窗
 
-## 1.3.0 双系统预览版
+## 1.3.1 双系统预览版
 
 macOS 版支持 macOS 13+、Apple 芯片和 Intel；Windows 便携版支持 Windows 10/11，使用系统自带 Windows PowerShell 5.1 和 .NET Framework。两端都需要安装并登录 Codex。
 
-Windows：从 [v1.3.0 预览版](https://github.com/ArloYi/Codex-Token-Monitor/releases/tag/v1.3.0) 下载对应 ZIP，完整解压，打开 Codex，再双击 `Start.cmd`；源码用户运行 `Windows/Start.cmd`。macOS 同样在该页面下载 Universal 2 ZIP。支持环形额度、悬停详情、拖动和贴边圆球，右键可以刷新或退出，无需额外安装运行环境。
+Windows：从 [v1.3.1 预览版](https://github.com/ArloYi/Codex-Token-Monitor/releases/tag/v1.3.1) 下载对应 ZIP，完整解压，打开 Codex，再双击 `Start.cmd`；源码用户运行 `Windows/Start.cmd`。macOS 同样在该页面下载 Universal 2 ZIP，先退出正在运行的旧监视器，再打开新版本。支持环形额度、悬停详情、拖动和贴边圆球，Windows 版右键可以刷新或退出，无需额外安装运行环境。
 
 Windows 首版显示最近活跃的本地项目，不代表桌面当前选中的任务；Token 从本地 session rollout 统计，界面暂为英文、尺寸固定。WSL 和归档会话不计入该版本地统计。详见 [Windows 使用说明](Windows/README.md)。真实 Windows 桌面行为仍待验收。
 
 新版兼容：自动寻找 Codex 安装路径，支持 `CODEX_BINARY` 指定可执行文件、`CODEX_HOME` 指定数据目录；额度读取兼容新旧响应以及空值。
+
+macOS 版已修复历史数据较多时停止刷新的问题：额度每分钟独立更新，项目统计每 5 秒刷新；历史文件改为流式读取，并在内存中缓存统计基线。排查时可设置 `CODEX_MONITOR_DEBUG=1`，仅输出刷新状态和耗时，不输出项目名称或 Token 数值。
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 

@@ -97,7 +97,7 @@ namespace CodexMonitor {
                     lock (ProcessLock) { p.Start(); activeProcess = p; }
                     p.BeginErrorReadLine();
                     try {
-                        var hello = Request(p, 1, "initialize", new { clientInfo = new { name = "codex-token-monitor", version = "1.3.0" }, capabilities = new { experimentalApi = true } });
+                        var hello = Request(p, 1, "initialize", new { clientInfo = new { name = "codex-token-monitor", version = "1.3.1" }, capabilities = new { experimentalApi = true } });
                         if (hello == null) throw new InvalidOperationException("Codex initialization failed.");
                         p.StandardInput.WriteLine("{\"method\":\"initialized\"}"); p.StandardInput.Flush();
                         var primary = Primary(Request(p, 2, "account/rateLimits/read", null));
