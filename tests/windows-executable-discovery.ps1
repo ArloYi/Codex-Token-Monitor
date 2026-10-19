@@ -30,13 +30,19 @@ function Test-Discovery([string]$name, [scriptblock]$setup, [switch]$Missing) {
     [Environment]::SetEnvironmentVariable('PROCESSOR_ARCHITEW6432', $null)
     $expected = & $setup $root
     $actual = $null
+    $missingSeen = $false
     try { $actual = $resolve.Invoke($null, $null) }
-    catch [Reflection.TargetInvocationException] {
-        if (-not $Missing -or $_.Exception.InnerException -isnot [IO.FileNotFoundException]) {
+    catch {
+        # PowerShell 5.1 wraps reflected exceptions in MethodInvocationException;
+        # inspect the underlying cause rather than relying on the wrapper type.
+        $failure = $_.Exception
+        while ($failure.InnerException) { $failure = $failure.InnerException }
+        if (-not $Missing -or $failure -isnot [IO.FileNotFoundException]) {
             throw "FAIL ${name}: executable discovery rejected the fixture"
         }
+        $missingSeen = $true
     }
-    if (($Missing -and $null -ne $actual) -or (-not $Missing -and $actual -ne $expected)) {
+    if (($Missing -and (-not $missingSeen -or $null -ne $actual)) -or (-not $Missing -and $actual -ne $expected)) {
         throw "FAIL ${name}: wrong executable selected"
     }
     $script:cases++
