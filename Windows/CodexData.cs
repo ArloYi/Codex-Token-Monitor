@@ -43,6 +43,31 @@ namespace CodexMonitor {
         public static string Home {
             get { return Environment.GetEnvironmentVariable("CODEX_HOME") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".codex"); }
         }
+        private static string NpmExecutable(string directory) {
+            var scope = Path.Combine(directory, "node_modules", "@openai");
+            var package = Path.Combine(scope, "codex");
+            var architecture = Environment.GetEnvironmentVariable("PROCESSOR_ARCHITEW6432")
+                ?? Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE") ?? "AMD64";
+            bool arm64 = architecture.Equals("ARM64", StringComparison.OrdinalIgnoreCase);
+            // npm may nest optional platform packages or hoist them beside @openai/codex.
+            // ARM64 Windows can also have an npm install managed by x64 Node.
+            foreach (var platform in arm64 ? new[] { "arm64", "x64" } : new[] { "x64" }) {
+                var platformPackage = "codex-win32-" + platform;
+                var target = platform == "arm64" ? "aarch64-pc-windows-msvc" : "x86_64-pc-windows-msvc";
+                foreach (var vendor in new[] {
+                    Path.Combine(package, "node_modules", "@openai", platformPackage, "vendor"),
+                    Path.Combine(scope, platformPackage, "vendor")
+                }) {
+                    var binary = Path.Combine(vendor, target, "bin", "codex.exe");
+                    if (File.Exists(binary)) return binary;
+                }
+            }
+            // Keep the pre-platform-package layout as the final fallback.
+            var legacyVendor = Path.Combine(package, "vendor");
+            return Directory.Exists(legacyVendor)
+                ? Directory.EnumerateFiles(legacyVendor, "codex.exe", SearchOption.AllDirectories).FirstOrDefault()
+                : null;
+        }
         private static string Executable() {
             var custom = Environment.GetEnvironmentVariable("CODEX_BINARY");
             if (!string.IsNullOrEmpty(custom) && File.Exists(custom)) return custom;
@@ -59,14 +84,15 @@ namespace CodexMonitor {
             }
             foreach (var directory in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)) {
                 if (string.IsNullOrWhiteSpace(directory)) continue;
-                var path = Path.Combine(directory.Trim('"'), "codex.exe");
-                if (File.Exists(path)) return path;
-                // npm's wrapper cannot be started with shell execution disabled. Find its native executable.
-                var vendor = Path.Combine(directory, "node_modules", "@openai", "codex", "vendor");
-                if (Directory.Exists(vendor)) {
-                    var binary = Directory.EnumerateFiles(vendor, "codex.exe", SearchOption.AllDirectories).FirstOrDefault();
-                    if (binary != null) return binary;
-                }
+                try {
+                    var root = directory.Trim().Trim('"');
+                    var path = Path.Combine(root, "codex.exe");
+                    if (File.Exists(path)) return path;
+                    // Start the native binary, never the npm .cmd shim or a shell.
+                    var npmBinary = NpmExecutable(root);
+                    if (npmBinary != null) return npmBinary;
+                } catch (ArgumentException) { } catch (NotSupportedException) { }
+                  catch (IOException) { } catch (UnauthorizedAccessException) { }
             }
             throw new FileNotFoundException("Open Codex, or set CODEX_BINARY to the full path of codex.exe.");
         }
@@ -97,7 +123,7 @@ namespace CodexMonitor {
                     lock (ProcessLock) { p.Start(); activeProcess = p; }
                     p.BeginErrorReadLine();
                     try {
-                        var hello = Request(p, 1, "initialize", new { clientInfo = new { name = "codex-token-monitor", version = "1.3.1" }, capabilities = new { experimentalApi = true } });
+                        var hello = Request(p, 1, "initialize", new { clientInfo = new { name = "codex-token-monitor", version = "1.3.2" }, capabilities = new { experimentalApi = true } });
                         if (hello == null) throw new InvalidOperationException("Codex initialization failed.");
                         p.StandardInput.WriteLine("{\"method\":\"initialized\"}"); p.StandardInput.Flush();
                         var primary = Primary(Request(p, 2, "account/rateLimits/read", null));

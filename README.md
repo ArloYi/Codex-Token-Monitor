@@ -13,9 +13,11 @@ The macOS edition requires macOS 13 or later. Universal 2 builds support Apple s
 
 ### Windows
 
-Download the Windows ZIP from the [v1.3.1 preview](https://github.com/ArloYi/Codex-Token-Monitor/releases/tag/v1.3.1), extract **all files**, open Codex and double-click `Start.cmd`. From a source checkout, run `Windows/Start.cmd`. No extra runtime installation is required. Hover to expand, drag to move or dock as a circle, and right-click to exit. See [Windows instructions](Windows/README.md).
+Download the Windows ZIP from the [v1.3.2 preview](https://github.com/ArloYi/Codex-Token-Monitor/releases/tag/v1.3.2), extract **all files**, open Codex and double-click `Start.cmd`. From a source checkout, run `Windows/Start.cmd`. No extra runtime installation is required. Hover to expand, drag to move or dock as a circle, and right-click to exit. See [Windows instructions](Windows/README.md).
 
 Windows shows the **most recently active local project**, not the currently selected task. Its Token totals use local session rollouts; macOS uses the desktop task title and database. Windows UI is currently English. Windows desktop behavior is pending a real Windows smoke test.
+
+Windows discovery supports current npm platform packages for x64 and ARM64, whether nested or hoisted, as well as older npm layouts and native executables on `PATH`. `CODEX_BINARY` remains the manual override.
 
 ## What it shows
 
@@ -35,7 +37,7 @@ The HUD appears only while Codex is the frontmost app. Its main surface passes c
 
 ## Download
 
-Download the Universal 2 ZIP and checksum from the [v1.3.1 preview](https://github.com/ArloYi/Codex-Token-Monitor/releases/tag/v1.3.1) for current Codex compatibility and the data-refresh fix. The [latest stable release](https://github.com/ArloYi/Codex-Token-Monitor/releases/latest) remains v1.2.2. Extract the archive, move the app to Applications if desired, quit any running older monitor, and open the new app.
+Download the Universal 2 ZIP and checksum from the [v1.3.2 preview](https://github.com/ArloYi/Codex-Token-Monitor/releases/tag/v1.3.2) for current Codex compatibility and the data-refresh fix. The [latest stable release](https://github.com/ArloYi/Codex-Token-Monitor/releases/latest) remains v1.2.2. Extract the archive, move the app to Applications if desired, quit any running older monitor, and open the new app.
 
 The app uses a local ad-hoc signature and is not notarized by Apple. On first launch, macOS may ask you to confirm the app under System Settings > Privacy & Security.
 

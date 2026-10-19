@@ -30,6 +30,25 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Prove regression against v1.3.1
+        shell: powershell
+        run: |
+          $baseline = Join-Path $env:RUNNER_TEMP 'CodexData-v1.3.1.cs'
+          git show v1.3.1:Windows/CodexData.cs | Set-Content $baseline -Encoding UTF8
+          if ($LASTEXITCODE -ne 0) { throw 'Could not read released baseline' }
+          $output = & powershell -NoProfile -ExecutionPolicy Bypass -File tests/windows-executable-discovery.ps1 -SourcePath $baseline
+          $code = $LASTEXITCODE
+          $output | Write-Output
+          if ($code -ne 1 -or ($output -join "`n") -notmatch 'FAIL modern-npm-nested:') {
+            throw 'Expected the released version to fail modern npm discovery'
+          }
+          Write-Output 'Red baseline confirmed'
+          exit 0
+      - name: Test Windows executable discovery
+        shell: powershell
+        run: ./tests/windows-executable-discovery.ps1
       - name: Test Windows protocol
         shell: powershell
         run: ./Windows/CodexQuotaHUD.ps1 -SelfTest
